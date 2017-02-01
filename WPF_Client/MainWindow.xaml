@@ -1,0 +1,453 @@
+﻿<Window x:Class="WPF_Client.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:WPF_Client"
+        mc:Ignorable="d"
+        Title="Maze"
+		AllowsTransparency="True"
+		WindowStyle="None"
+		ResizeMode="CanResize"
+		SnapsToDevicePixels="True"
+		Deactivated="Window_Deactivated"
+		Activated="Window_Activated"
+		Height="450" Width="600" MinWidth="550" MinHeight="390" WindowStartupLocation="Manual" MouseWheel="Window_MouseWheel">
+	<WindowChrome.WindowChrome>
+		<WindowChrome
+			CaptionHeight="0"
+			ResizeBorderThickness="8" />
+	</WindowChrome.WindowChrome>
+
+	<Grid x:Name="mainGrid" SnapsToDevicePixels="True" Background="#FF96BED8">
+
+		<Label x:Name="coverLabel" Background="#FF163442" Visibility="Collapsed"/>
+
+		<Grid x:Name="container" SnapsToDevicePixels="True" Margin="45,30,0,0">
+			<Viewbox>
+				<Grid x:Name="mazeContainer" HorizontalAlignment="Left" VerticalAlignment="Top" Width="252" Height="252" Margin="10,10,10,10" Background="Black" SnapsToDevicePixels="True">
+					<Grid x:Name="mazeGrid" Width="250" Height="250" Background="White" SnapsToDevicePixels="True">
+					</Grid>
+					<Canvas x:Name="gridsCanvas" Width="250" Height="250" SnapsToDevicePixels="True">
+					</Canvas>
+				</Grid>
+			</Viewbox>
+			<Label x:Name="coverLabel2" Width="5" Background="#FF163442" HorizontalAlignment="Right" Visibility="Collapsed"/>
+
+			<Grid x:Name="notSolvableToastGrid" Visibility="Collapsed" Width="170" Height="40" Background="#FF163442">
+				<TextBlock Text="Maze not solvable" VerticalAlignment="Center" HorizontalAlignment="Center" FontWeight="Bold" Foreground="White" FontSize="18"/>
+			</Grid>
+
+			<Grid x:Name="solutionViewerControlGrid" Opacity="0.2" Width="180" Height="90" VerticalAlignment="Bottom" HorizontalAlignment="Right" Background="#AA163442">
+				<Grid.Triggers>
+					<EventTrigger RoutedEvent="Grid.MouseEnter">
+						<EventTrigger.Actions>
+							<BeginStoryboard>
+								<Storyboard>
+									<DoubleAnimation Storyboard.TargetProperty="Opacity" Duration="0" To="1"/>
+								</Storyboard>
+							</BeginStoryboard>
+						</EventTrigger.Actions>
+					</EventTrigger>
+					<EventTrigger RoutedEvent="Grid.MouseLeave">
+						<EventTrigger.Actions>
+							<BeginStoryboard>
+								<Storyboard>
+									<DoubleAnimation Storyboard.TargetProperty="Opacity" Duration="0" To="0.2"/>
+								</Storyboard>
+							</BeginStoryboard>
+						</EventTrigger.Actions>
+					</EventTrigger>
+				</Grid.Triggers>
+				<Button x:Name="resizeSolutionViewerButton" Style="{StaticResource MyButtonStyle}" Width="180" Height="20" Focusable="False" Margin="0,0,0,0" VerticalAlignment="Top" HorizontalAlignment="Center" Click="resizeSolutionViewerButton_Click">
+					<Button.Background>
+						<ImageBrush ImageSource="Collapse.png" Stretch="None">
+							<ImageBrush.RelativeTransform>
+								<TransformGroup>
+									<ScaleTransform CenterY="0.5" CenterX="0.5"/>
+									<SkewTransform CenterY="0.5" CenterX="0.5"/>
+									<RotateTransform Angle="0" CenterY="0.5" CenterX="0.5"/>
+									<TranslateTransform/>
+								</TransformGroup>
+							</ImageBrush.RelativeTransform>
+						</ImageBrush>
+					</Button.Background>
+				</Button>
+				<Button x:Name="playSolutionButton" Style="{StaticResource MyButtonStyle}" Width="30" Height="30" Focusable="False" Margin="20" VerticalAlignment="Top" HorizontalAlignment="Left" Click="playSolutionButton_Click">
+					<Button.Background>
+						<ImageBrush ImageSource="Play.png"/>
+					</Button.Background>
+				</Button>
+				<Button x:Name="pauseSolutionButton" Visibility="Collapsed" Style="{StaticResource MyButtonStyle}" Width="30" Height="30" Focusable="False" Margin="20" VerticalAlignment="Top" HorizontalAlignment="Left" Click="playSolutionButton_Click">
+					<Button.Background>
+						<ImageBrush ImageSource="Pause.png"/>
+					</Button.Background>
+				</Button>
+				<Slider x:Name="solutionSpeedSlider" Width="75" Focusable="False" VerticalAlignment="Bottom" HorizontalAlignment="Right" Margin="0,0,15,50" Minimum="-1" Maximum="1" Value="0" SmallChange="0.1" LargeChange="0.2" Template="{DynamicResource SliderControlTemplate1}" MouseDown="solutionSpeedSlider_MouseDown" ValueChanged="solutionSpeedSlider_ValueChanged"/>
+				<TextBlock x:Name="stepNumberTextBlock" Text="123 of 1341" Foreground="White" FontSize="8" Margin="0,0,0,35" VerticalAlignment="Bottom" HorizontalAlignment="Center"/>
+				<Slider x:Name="solutionSeekerSlider" Width="150" VerticalAlignment="Bottom" HorizontalAlignment="Center" Margin="0,0,0,10" TickPlacement="BottomRight" SmallChange="1" LargeChange="10" Minimum="0" Maximum="100" Template="{DynamicResource SliderControlTemplate1}" FocusVisualStyle="{x:Null}" TickFrequency="10" ValueChanged="solutionSeekerSlider_ValueChanged"/>
+				<TextBlock Text="speed" Margin="67,25,0,0" Foreground="White" FontSize="8" VerticalAlignment="Top" HorizontalAlignment="Left"/>
+			</Grid>
+
+			<Grid x:Name="fullscreenPanel" Visibility="Collapsed" FocusManager.IsFocusScope="True" KeyboardNavigation.TabNavigation="Cycle" Background="#FF163442" Margin="0,0,0,0" Opacity="1">
+				<Grid x:Name="fullscreenPanelsGrid">
+					<Grid x:Name="createMazePanel" Visibility="Collapsed" HorizontalAlignment="Left">
+						<StackPanel>
+							<TextBlock Text="Create maze" FontSize="32" Foreground="#FFF4F4F4" HorizontalAlignment="Left" VerticalAlignment="Top" />
+							<StackPanel Orientation="Horizontal">
+								<TextBlock Text="Width:" Foreground="White"/>
+								<TextBox x:Name="widthInputTextBox" HorizontalAlignment="Left" Height="20" VerticalAlignment="Top" Width="40" GotKeyboardFocus="inputBox_GotKeyboardFocus" Template="{StaticResource TextBoxControlTemplate1}" MaxLength="4" MaxLines="1" TextChanged="widthInputBox_TextChanged"/>
+								<TextBlock x:Name="invalidWidthInputTextBlock" Text="5 - 100" Foreground="White" FontStyle="Italic"/>
+							</StackPanel>
+							<StackPanel Orientation="Horizontal">
+								<TextBlock Text="Height:" Foreground="White"/>
+								<TextBox x:Name="heightInputTextBox" HorizontalAlignment="Left" Height="20" VerticalAlignment="Top" Width="40" GotKeyboardFocus="inputBox_GotKeyboardFocus" Template="{StaticResource TextBoxControlTemplate1}" MaxLength="4" MaxLines="1" TextChanged="widthInputBox_TextChanged"/>
+								<TextBlock x:Name="invalidHeightInputTextBlock" Text="5 - 100" Foreground="White" FontStyle="Italic"/>
+							</StackPanel>
+							<Button x:Name="createMazeButton" Style="{StaticResource MyButtonStyle}" VerticalAlignment="Top" Click="createMazeButton_Click" HorizontalAlignment="Left">
+								<Label>
+									<TextBlock Text="Create maze" FontWeight="Bold" Foreground="White"/>
+								</Label>
+							</Button>
+						</StackPanel>
+					</Grid>
+					<Grid x:Name="editMazePanel" Visibility="Collapsed" HorizontalAlignment="Left">
+						<StackPanel>
+							<TextBlock Text="Edit maze" FontSize="32" Foreground="#FFF4F4F4" HorizontalAlignment="Left" VerticalAlignment="Top" />
+							<StackPanel x:Name="randomizeMazeStackPanel" Margin="10,20,0,0">
+								<TextBlock Text="Randomize maze" Foreground="White"/>
+								<StackPanel Margin="10,10,0,0">
+									<TextBlock Text="- by percent:" Foreground="White"/>
+									<StackPanel Orientation="Horizontal" Margin="10,10,0,0">
+										<TextBlock Text="percent:" Foreground="White"/>
+										<TextBox x:Name="blockPercentTextBox" Margin="10,0,0,0" HorizontalAlignment="Left" Height="20" VerticalAlignment="Top" Width="35" GotKeyboardFocus="inputBox_GotKeyboardFocus" MaxLength="4" Template="{StaticResource TextBoxControlTemplate1}" Background="#FF163442" Foreground="#FFF4F4F4" BorderBrush="#FFF4F4F4" TextChanged="blockPercentTextBox_TextChanged"/>
+										<TextBlock x:Name="invalidPercentTextBlock" FontStyle="Italic"/>
+									</StackPanel>
+									<Button x:Name="randomBlocksByPercentButton" Style="{StaticResource MyButtonStyle}" Margin="10,10,0,0" BorderThickness="0,0,0,1" BorderBrush="White" HorizontalAlignment="Left" VerticalAlignment="Top" Click="randomBlocksByPercentButton_Click">
+										<Label Padding="0">
+											<TextBlock Text="Randomize" FontWeight="Bold" Foreground="White" Margin="0"/>
+										</Label>
+									</Button>
+								</StackPanel>
+								<StackPanel Margin="10,10,0,0">
+									<TextBlock Text="- using depth-first search algorithm:" Foreground="White"/>
+									<Button x:Name="randomBlocksUsingDepthFirstAlgButton" Style="{StaticResource MyButtonStyle}" Margin="10,10,0,0" HorizontalAlignment="Left" VerticalAlignment="Top" Click="randomBlocksUsingDepthFirstAlgButton_Click">
+										<Label>
+											<TextBlock Text="Randomize" FontWeight="Bold" Foreground="White"/>
+										</Label>
+									</Button>
+								</StackPanel>
+							</StackPanel>
+							<Button x:Name="clearMazeButton" Style="{StaticResource MyButtonStyle}" Margin="10,20,0,0" HorizontalAlignment="Left" VerticalAlignment="Top" Click="clearMazeButton_Click">
+								<Label>
+									<TextBlock Text="Clear maze" FontWeight="Bold" Foreground="White"/>
+								</Label>
+							</Button>
+							<Button x:Name="disposeMazeButton" Style="{StaticResource MyButtonStyle}" Margin="10,20,0,0" HorizontalAlignment="Left" VerticalAlignment="Top" Click="disposeMazeButton_Click">
+								<Label>
+									<TextBlock Text="Dispose maze" FontWeight="Bold" Foreground="White"/>
+								</Label>
+							</Button>
+
+						</StackPanel>
+					</Grid>
+					<Grid x:Name="solutionPanel" Visibility="Collapsed" HorizontalAlignment="Left">
+						<StackPanel>
+							<TextBlock Text="Maze solution" FontSize="32" Foreground="#FFF4F4F4" HorizontalAlignment="Left" VerticalAlignment="Top" />
+							<StackPanel x:Name="mazeSolutionStackPanel" Margin="10,20,0,0">
+								<TextBlock Text="- Solve using mouse algorithm:" Foreground="White"/>
+								<StackPanel Margin="10,10,0,0">
+									<CheckBox x:Name="useRandomDirectionCheckBox" Content="use random directions" Background="#FF163442" BorderThickness="1" BorderBrush="White" Foreground="White" IsChecked="True" Template="{DynamicResource CheckBoxControlTemplate1}"/>
+									<StackPanel Orientation="Horizontal" Margin="00,10,0,0">
+										<TextBlock Text="display:" Foreground="White"/>
+										<StackPanel Margin="10,0,0,0">
+											<RadioButton x:Name="mouseAlgSolutionPathRadioButton" BorderThickness="1" BorderBrush="White" Background="#FF163442" Content="solution path" Foreground="White" IsChecked="True" Template="{DynamicResource RadioButtonControlTemplate1}"/>
+											<RadioButton Margin="0,5,0,0" BorderThickness="1" BorderBrush="White" Background="#FF163442" Content="solution procedure" Foreground="White" Template="{DynamicResource RadioButtonControlTemplate1}"/>
+										</StackPanel>
+									</StackPanel>
+									<Button x:Name="solveUsingMouseAlgButton" Style="{StaticResource MyButtonStyle}" Margin="0,10,0,0" HorizontalAlignment="Left" VerticalAlignment="Top" Click="solveUsingMouseAlgButton_Click">
+										<Label Padding="0.5">
+											<TextBlock Text="Solve" FontSize="14" FontWeight="Bold" Foreground="White"/>
+										</Label>
+									</Button>
+								</StackPanel>
+								<TextBlock Text="- Solve using fluid simulation algorithm:" Foreground="White" Margin="0,20,0,0"/>
+								<StackPanel Margin="10,10,0,0">
+									<StackPanel Orientation="Horizontal">
+										<TextBlock Text="display:" Foreground="White"/>
+										<StackPanel Margin="10,0,0,0">
+											<RadioButton x:Name="fluidAlgSolutionPathRadioButton" Content="solution path" BorderThickness="1" BorderBrush="White" Background="#FF163442" Foreground="White" IsChecked="True" Template="{DynamicResource RadioButtonControlTemplate1}"/>
+											<RadioButton Margin="0,5,0,0" Content="solution procedure" BorderThickness="1" BorderBrush="White" Background="#FF163442" Foreground="White" Template="{DynamicResource RadioButtonControlTemplate1}"/>
+										</StackPanel>
+									</StackPanel>
+									<Button x:Name="solveUsingFluidButton" Style="{StaticResource MyButtonStyle}" Margin="0,10,0,0" HorizontalAlignment="Left" VerticalAlignment="Top" Click="solveUsingFluidButton_Click">
+										<Label Padding="0.5">
+											<TextBlock Text="Solve" FontSize="14" FontWeight="Bold" Foreground="White"/>
+										</Label>
+									</Button>
+								</StackPanel>
+							</StackPanel>
+						</StackPanel>
+					</Grid>
+					<Grid x:Name="runTheMazePanel" Visibility="Collapsed" HorizontalAlignment="Left">
+						<StackPanel>
+							<TextBlock Text="Run the maze :-)" FontSize="32" Foreground="#FFF4F4F4" HorizontalAlignment="Left" VerticalAlignment="Top" />
+						</StackPanel>
+					</Grid>
+					<Grid x:Name="settingsPanel" Visibility="Collapsed" HorizontalAlignment="Left">
+						<StackPanel>
+							<TextBlock Text="Settings" FontSize="32" Foreground="#FFF4F4F4" HorizontalAlignment="Left" VerticalAlignment="Top" />
+							<TextBlock Text="Interface scale" FontSize="14" Foreground="White"/>
+							<StackPanel Orientation="Horizontal">
+								<Button x:Name="UI80Button" FontSize="12" Style="{StaticResource MyButtonStyle}" Foreground="White" Content="80%" Click="UI80Button_Click"/>
+								<Button x:Name="UI100Button" FontSize="12" Style="{StaticResource MyButtonStyle}" Foreground="White" Content="100%" Click="UI100Button_Click"/>
+								<Button x:Name="UI120Button" FontSize="12" Style="{StaticResource MyButtonStyle}" Foreground="White" Content="120%" Click="UI120Button_Click"/>
+								<Button x:Name="UI140Button" FontSize="12" Style="{StaticResource MyButtonStyle}" Foreground="White" Content="140%" Click="UI140Button_Click"/>
+							</StackPanel>
+							<TextBlock Text="Maze grids" FontSize="14" Foreground="White"/>
+							<CheckBox x:Name="showGridsCheckBox" Content="show maze grids" FontSize="12" BorderThickness="1" Foreground="White" Background="#FF163442" Template="{StaticResource CheckBoxControlTemplate1}" BorderBrush="White" Checked="showGridsCheckBox_Checked" Unchecked="showGridsCheckBox_Unchecked"/>
+							<TextBlock Text="Color scheme" FontSize="14" Foreground="White"/>
+							<Grid>
+								<Button x:Name="blueColorSchemeButton" Style="{StaticResource MyButtonStyle2}" Background="Blue" BorderBrush="White" Width="30" Height="30" VerticalAlignment="Top" HorizontalAlignment="Left" Click="blueColorSchemeButton_Click"/>
+								<Button x:Name="greenColorSchemeButton" Style="{StaticResource MyButtonStyle2}" Background="Blue" BorderBrush="White" Width="30" Height="30" VerticalAlignment="Top" HorizontalAlignment="Left" Click="greenColorSchemeButton_Click"/>
+								<Button x:Name="redColorSchemeButton" Style="{StaticResource MyButtonStyle2}" Background="Blue" BorderBrush="White" Width="30" Height="30" VerticalAlignment="Top" HorizontalAlignment="Left" Click="redColorSchemeButton_Click"/>
+								<Button x:Name="yellowColorSchemeButton" Style="{StaticResource MyButtonStyle2}" Background="Blue" BorderBrush="White" Width="30" Height="30" VerticalAlignment="Top" HorizontalAlignment="Left" Click="yellowColorSchemeButton_Click"/>
+								<Button x:Name="pinkColorSchemeButton" Style="{StaticResource MyButtonStyle2}" Background="Blue" BorderBrush="White" Width="30" Height="30" VerticalAlignment="Top" HorizontalAlignment="Left" Click="pinkColorSchemeButton_Click"/>
+								<Button x:Name="grayColorSchemeButton" Style="{StaticResource MyButtonStyle2}" Background="Blue" BorderBrush="White" Width="30" Height="30" VerticalAlignment="Top" HorizontalAlignment="Left" Click="grayColorSchemeButton_Click"/>
+							</Grid>
+						</StackPanel>
+					</Grid>
+					<Grid x:Name="aboutPanel" Visibility="Collapsed" HorizontalAlignment="Left">
+						<StackPanel>
+							<TextBlock Text="Help &amp; About" FontSize="32" Foreground="#FFF4F4F4" HorizontalAlignment="Left" VerticalAlignment="Top" />
+							<ScrollViewer HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Hidden">
+								<StackPanel x:Name="aboutContentStackPanel">
+									<TextBlock Text="How to use" Foreground="White" FontSize="18"/>
+									<TextBlock FontSize="12" Foreground="White" Width="250" TextWrapping="Wrap">
+										Create an empty maze with your desired size. You can modify it anytime using these controls:<LineBreak/>
+										&#160;- Add block using left mouse button or 'B'<LineBreak/>
+										&#160;- Make empty using right mouse button or 'E'<LineBreak/>
+										&#160;- Set start position using 'S' button<LineBreak/>
+										&#160;- Set finish position using 'F' button<LineBreak/>
+										You can find methods that can randomize your maze in the Edit section.<LineBreak/>
+										Also there are 2 methods for solving your maze in the solution section. After pressing the solve button you can control solution progress by using the panel in the bottom right corner.
+									</TextBlock>
+									<TextBlock Text="About developer" Foreground="White" FontSize="18"/>
+									<TextBlock FontSize="12" Foreground="White" Width="250" TextWrapping="Wrap">
+								Eminent Maze is an open-source software developed by EminentDevs.<LineBreak/>
+								Source code is avaiable at: <Hyperlink x:Name="githubHyperlink" NavigateUri="https://github.com/m-ehsan/Eminent-Maze" RequestNavigate="Hyperlink_RequestNavigate" Foreground="White">Github</Hyperlink>
+									</TextBlock>
+									<Image Source="EminenetLogo.png" Width="70" HorizontalAlignment="Left"/>
+									<TextBlock FontSize="11" Foreground="White">
+								© 2017 by EminentDevs
+									</TextBlock>
+								</StackPanel>
+							</ScrollViewer>
+						</StackPanel>
+					</Grid>
+				</Grid>
+				<Button Style="{StaticResource MyButtonStyle}" Margin="20,0,0,10" VerticalAlignment="Bottom" HorizontalAlignment="Left" Click="closeFullscreenPanelLabel_Click">
+					<Label Padding="0.5">
+						<TextBlock Text="Back" FontSize="16" Foreground="#FFEEEEEE" FontFamily="Segoe WP"/>
+					</Label>
+				</Button>
+			</Grid>
+		</Grid>
+
+		<Grid x:Name="panel" Margin="0,30,0,0" Visibility="Visible" HorizontalAlignment="Left" Width="45" Background="#FF275C7A" SnapsToDevicePixels="True">
+			<Label x:Name="activePanelIndicator" Width="5" Height="45" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="0,45,0,0" Background="#FF70B8D6"/>
+			<Grid x:Name="panelButtonsGrid">
+				<Button x:Name="expandPanelButton" Style="{StaticResource PanelButtonStyle}" HorizontalAlignment="Left" VerticalAlignment="Top" Width="150" Height="45" Focusable="False" IsTabStop="False" Click="expandPanelButton_Click">
+					<Grid Width="150">
+						<Label/>
+						<Grid>
+							<TextBlock Text="MENU" TextWrapping="NoWrap" Margin="50,0,0,0" VerticalAlignment="Center" Foreground="#FFEEEEEE" FontFamily="Segoe WP Semibold" FontSize="16" Grid.Column="1" TextDecorations="{x:Null}"/>
+						</Grid>
+						<Label Width="45" Height="45" HorizontalAlignment="Left">
+							<Label.Background>
+								<ImageBrush ImageSource="Menu.png" Stretch="None">
+									<ImageBrush.RelativeTransform>
+										<TransformGroup>
+											<ScaleTransform CenterY="0.5" CenterX="0.5" ScaleX="1.5" ScaleY="1.5"/>
+											<SkewTransform CenterY="0.5" CenterX="0.5"/>
+											<RotateTransform CenterY="0.5" CenterX="0.5"/>
+											<TranslateTransform/>
+										</TransformGroup>
+									</ImageBrush.RelativeTransform>
+								</ImageBrush>
+							</Label.Background>
+						</Label>
+						<Line X1="0" Y1="44.5" X2="150" Y2="44.5" Stroke="#FFEEEEEE" StrokeThickness="0.5"/>
+					</Grid>
+				</Button>
+				<Button x:Name="createMazeButton2" Style="{StaticResource PanelButtonStyle}" Margin="0,45,0,0" HorizontalAlignment="Left" VerticalAlignment="Top" Width="150" Height="45" Focusable="False" IsTabStop="False" Click="menuItem_Click">
+					<Grid Width="150">
+						<Label/>
+						<Grid>
+							<TextBlock Text="Create" TextWrapping="NoWrap" Margin="50,0,0,0" VerticalAlignment="Center" Foreground="#FFEEEEEE" FontFamily="Segoe WP" FontSize="14"/>
+						</Grid>
+						<Label Width="45" Height="45" HorizontalAlignment="Left">
+							<Label.Background>
+								<ImageBrush ImageSource="Create.png" Stretch="None">
+									<ImageBrush.RelativeTransform>
+										<TransformGroup>
+											<ScaleTransform CenterY="0.5" CenterX="0.5" ScaleX="1.5" ScaleY="1.5"/>
+											<SkewTransform CenterY="0.5" CenterX="0.5"/>
+											<RotateTransform CenterY="0.5" CenterX="0.5"/>
+											<TranslateTransform/>
+										</TransformGroup>
+									</ImageBrush.RelativeTransform>
+								</ImageBrush>
+							</Label.Background>
+						</Label>
+					</Grid>
+				</Button>
+				<Button x:Name="editMazeButton" Style="{StaticResource PanelButtonStyle}" Margin="0,90,0,0" HorizontalAlignment="Left" VerticalAlignment="Top" Width="150" Height="45" Focusable="False" IsTabStop="False" Click="menuItem_Click">
+					<Grid Width="150">
+						<Label/>
+						<Grid>
+							<TextBlock Text="Edit" TextWrapping="NoWrap" Margin="50,0,0,0" VerticalAlignment="Center" Foreground="#FFEEEEEE" FontFamily="Segoe WP" FontSize="14"/>
+						</Grid>
+						<Label Width="45" Height="45" HorizontalAlignment="Left">
+							<Label.Background>
+								<ImageBrush ImageSource="Edit.png" Stretch="None">
+									<ImageBrush.RelativeTransform>
+										<TransformGroup>
+											<ScaleTransform CenterY="0.5" CenterX="0.5" ScaleX="1.5" ScaleY="1.5"/>
+											<SkewTransform CenterY="0.5" CenterX="0.5"/>
+											<RotateTransform CenterY="0.5" CenterX="0.5"/>
+											<TranslateTransform/>
+										</TransformGroup>
+									</ImageBrush.RelativeTransform>
+								</ImageBrush>
+							</Label.Background>
+						</Label>
+					</Grid>
+				</Button>
+				<Button x:Name="solutionButton" Style="{StaticResource PanelButtonStyle}" Margin="0,135,0,0" HorizontalAlignment="Left" VerticalAlignment="Top" Width="150" Height="45" Focusable="False" IsTabStop="False" Click="menuItem_Click">
+					<Grid Width="150">
+						<Label/>
+						<Grid>
+							<TextBlock Text="Solution" TextWrapping="NoWrap" Margin="50,0,0,0" VerticalAlignment="Center" Foreground="#FFEEEEEE" FontFamily="Segoe WP" FontSize="14"/>
+						</Grid>
+						<Label Width="45" Height="45" HorizontalAlignment="Left">
+							<Label.Background>
+								<ImageBrush ImageSource="Solution.png" Stretch="None">
+									<ImageBrush.RelativeTransform>
+										<TransformGroup>
+											<ScaleTransform CenterY="0.5" CenterX="0.5" ScaleX="1.5" ScaleY="1.5"/>
+											<SkewTransform CenterY="0.5" CenterX="0.5"/>
+											<RotateTransform CenterY="0.5" CenterX="0.5"/>
+											<TranslateTransform/>
+										</TransformGroup>
+									</ImageBrush.RelativeTransform>
+								</ImageBrush>
+							</Label.Background>
+						</Label>
+					</Grid>
+				</Button>
+				<Button x:Name="runTheMazeButton" Style="{StaticResource PanelButtonStyle}" Margin="0,180,0,0" HorizontalAlignment="Left" VerticalAlignment="Top" Width="150" Height="45" Focusable="False" IsTabStop="False" Click="menuItem_Click">
+					<Grid Width="150">
+						<Label/>
+						<Grid>
+							<TextBlock Text="Run the maze" TextWrapping="NoWrap" Margin="50,0,0,0" VerticalAlignment="Center" Foreground="#FFEEEEEE" FontFamily="Segoe WP" FontSize="14"/>
+						</Grid>
+						<Label Width="45" Height="45" HorizontalAlignment="Left">
+							<Label.Background>
+								<ImageBrush ImageSource="Run.png" Stretch="None">
+									<ImageBrush.RelativeTransform>
+										<TransformGroup>
+											<ScaleTransform CenterY="0.5" CenterX="0.5" ScaleX="1.5" ScaleY="1.5"/>
+											<SkewTransform CenterY="0.5" CenterX="0.5"/>
+											<RotateTransform CenterY="0.5" CenterX="0.5"/>
+											<TranslateTransform/>
+										</TransformGroup>
+									</ImageBrush.RelativeTransform>
+								</ImageBrush>
+							</Label.Background>
+						</Label>
+					</Grid>
+				</Button>
+				<Button x:Name="settingsButton" Style="{StaticResource PanelButtonStyle}" Margin="0,0,0,45" HorizontalAlignment="Left" VerticalAlignment="Bottom" Width="150" Height="45" Focusable="False" IsTabStop="False" Click="menuItem_Click">
+					<Grid Width="150">
+						<Label/>
+						<Grid>
+							<TextBlock Text="Settings" TextWrapping="NoWrap" Margin="50,0,0,0" VerticalAlignment="Center" Foreground="#FFEEEEEE" FontFamily="Segoe WP" FontSize="14"/>
+						</Grid>
+						<Label Width="45" Height="45" HorizontalAlignment="Left">
+							<Label.Background>
+								<ImageBrush ImageSource="Settings.png" Stretch="None">
+									<ImageBrush.RelativeTransform>
+										<TransformGroup>
+											<ScaleTransform CenterY="0.5" CenterX="0.5" ScaleX="1.5" ScaleY="1.5"/>
+											<SkewTransform CenterY="0.5" CenterX="0.5"/>
+											<RotateTransform CenterY="0.5" CenterX="0.5"/>
+											<TranslateTransform/>
+										</TransformGroup>
+									</ImageBrush.RelativeTransform>
+								</ImageBrush>
+							</Label.Background>
+						</Label>
+						<Line X1="0" Y1="0.5" X2="150" Y2="0.5" Stroke="#FFEEEEEE" StrokeThickness="0.5"/>
+					</Grid>
+				</Button>
+				<Button x:Name="aboutButton" Style="{StaticResource PanelButtonStyle}" Margin="0,315,0,0" HorizontalAlignment="Left" VerticalAlignment="Bottom" Width="150" Height="45" Focusable="False" IsTabStop="False" Click="menuItem_Click">
+					<Grid Width="150">
+						<Label/>
+						<Grid>
+							<TextBlock Text="About" TextWrapping="NoWrap" Margin="50,0,0,0" VerticalAlignment="Center" Foreground="#FFEEEEEE" FontFamily="Segoe WP" FontSize="14"/>
+						</Grid>
+						<Label Width="45" Height="45" HorizontalAlignment="Left">
+							<Label.Background>
+								<ImageBrush ImageSource="About.png" Stretch="None">
+									<ImageBrush.RelativeTransform>
+										<TransformGroup>
+											<ScaleTransform CenterY="0.5" CenterX="0.5" ScaleX="1.5" ScaleY="1.5"/>
+											<SkewTransform CenterY="0.5" CenterX="0.5"/>
+											<RotateTransform CenterY="0.5" CenterX="0.5"/>
+											<TranslateTransform/>
+										</TransformGroup>
+									</ImageBrush.RelativeTransform>
+								</ImageBrush>
+							</Label.Background>
+						</Label>
+					</Grid>
+				</Button>
+			</Grid>
+		</Grid>
+
+		<Grid x:Name="splashScreenGrid" Visibility="Visible" Background="#FF143E57">
+			<Image Source="Logo.ico" HorizontalAlignment="Center" VerticalAlignment="Center" Width="120"/>
+			<Image Source="EminenetLogo.png" Margin="0,0,0,22" HorizontalAlignment="Center" VerticalAlignment="Bottom" Width="40"/>
+			<TextBlock Text="© 2017 by EminentDevs" FontSize="12" Foreground="White" Margin="0,0,0,7" VerticalAlignment="Bottom" HorizontalAlignment="Center"/>
+		</Grid>
+
+		<Grid  x:Name="menuBar" Height="30" VerticalAlignment="Top" Margin="0" Background="#FF143E57" MouseLeftButtonDown="menuBar_MouseLeftButtonDown" MouseDown="menuBar_MouseDown" SnapsToDevicePixels="True">
+			<Grid x:Name="menuBarItems">
+				<TextBlock x:Name="windowTitleTextBlock" HorizontalAlignment="Left" Margin="12,0,0,0" TextWrapping="Wrap" Text="Eminent Maze" VerticalAlignment="Center" Foreground="#FFEEEEEE" FontFamily="Segoe WP"/>
+				<Button x:Name="exitButton" Style="{StaticResource MyButtonStyle}" Width="30" Height="30" VerticalAlignment="Top" HorizontalAlignment="Right" Margin="0" Click="exitButton_Click" BorderBrush="{x:Null}" BorderThickness="0" Focusable="False" IsTabStop="False" Foreground="{x:Null}">
+					<Button.Background>
+						<ImageBrush ImageSource="Exit.png" Stretch="None"/>
+					</Button.Background>
+				</Button>
+				<Button x:Name="fullscreenButton" Style="{StaticResource MyButtonStyle}" Width="30" Height="30" VerticalAlignment="Top" HorizontalAlignment="Right" Margin="0,0,30,0" Click="fullscreenButton_Click" BorderThickness="0" BorderBrush="{x:Null}" Focusable="False" IsTabStop="False">
+					<Button.Background>
+						<ImageBrush ImageSource="Fullscreen.png" Stretch="None"/>
+					</Button.Background>
+				</Button>
+				<Button x:Name="resizeWindowButton" Style="{StaticResource MyButtonStyle}" Width="30" Height="30" VerticalAlignment="Top" HorizontalAlignment="Right" Margin="0,0,30,0" Click="fullscreenButton_Click" BorderThickness="0" BorderBrush="{x:Null}" Focusable="False" IsTabStop="False" Visibility="Hidden">
+					<Button.Background>
+						<ImageBrush ImageSource="Resize.png" Stretch="None"/>
+					</Button.Background>
+				</Button>
+				<Button x:Name="minimizeButton" Style="{StaticResource MyButtonStyle}" Width="30" Height="30" VerticalAlignment="Top" HorizontalAlignment="Right" Margin="0,0,60,0" Click="minimizeButton_Click" BorderThickness="0" BorderBrush="{x:Null}" Focusable="False" IsTabStop="False">
+					<Button.Background>
+						<ImageBrush ImageSource="Minimize.png" Stretch="None"/>
+					</Button.Background>
+				</Button>
+			</Grid>
+		</Grid>
+
+
+	</Grid>
+</Window>
